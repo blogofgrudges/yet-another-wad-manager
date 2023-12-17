@@ -2,6 +2,5 @@ app:
   profiles_folder: 'profiles'
 
 source_port:
-  installed_drive: 'F:'
-  binary: 'GZDoom\gzdoom.exe'
-  wads_folder: 'GZDoom\WADs'
+  binary: 'F:\GZDoom\gzdoom.exe'
+  wads_folder: 'F:\GZDoom\WADs'

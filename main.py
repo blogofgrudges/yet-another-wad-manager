@@ -1,6 +1,6 @@
 """
 YAWM - Yet another (DOOM) WAD manager
-python main.py -p (--profile) my-profile-0.yaml
+python main.py -p (--profile) my-profile-0.yaml -c (--cli_opts) '-key value'
 """
 
 import argparse
@@ -9,34 +9,32 @@ import os.path
 
 import yaml
 
-
-def scuffed_path(drive: str, target: str) -> str:
-    """
-    Create a path from the drive to target directory.
-    """
-    return os.path.join(os.sep, drive + os.sep, target)
+from models import Profile
 
 
 argp = argparse.ArgumentParser()
 argp.add_argument('-p', '--profile', type=str)
+argp.add_argument('-c', '--cli_opts', type=str, nargs='?')
 args = argp.parse_args()
 
 with open('config.yaml', 'r') as config_yaml:
     config = yaml.safe_load(config_yaml.read())
 
 wads_folder = config['source_port']['wads_folder']
-source_port = config['source_port']['binary']
-installed_drive = config['source_port']['installed_drive']
+source_port_binary = config['source_port']['binary']
 profiles_folder = config['app']['profiles_folder']
 
-wads_path = scuffed_path(installed_drive, wads_folder)
+profile = Profile(os.path.join(profiles_folder, args.profile))
 
-with open(os.path.join(profiles_folder, args.profile), 'r') as profile_yaml:
-    profile = yaml.safe_load(profile_yaml.read())
+launch_params = {}
+wads = [os.path.join(wads_folder, wad) for wad in profile.wads]
 
-wads = [scuffed_path(wads_path, wad) for wad in profile['wads']]
-launch_params = f"-file {' '.join(wads)}"
-launch_path = f'{scuffed_path(installed_drive, source_port)} {launch_params}'
-print(launch_path)
+if wads:
+    launch_params['wads'] = f"-file {' '.join(wads)}"
+if profile.launch_opts:
+    launch_params['profile_opts'] = profile.launch_opts
+if args.cli_opts:
+    launch_params['cli_opts'] = args.cli_opts
 
+launch_path = f"{source_port_binary} {' '.join(launch_params.values())}"
 os.system(launch_path)
