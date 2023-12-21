@@ -1,4 +1,11 @@
-app:
+logger:
+  level: 0
+
+gui:
+  size_x: 700
+  size_y: 400
+
+service:
   profiles_folder: 'profiles'
 
 source_port:

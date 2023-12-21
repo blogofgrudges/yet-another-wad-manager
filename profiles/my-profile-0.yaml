@@ -1,7 +1,0 @@
-launch_opts: '-skill 4'  # launch_opts is optional
-wads:
-  - nchud-main.pk3
-  - pk_doom_sfx_20120224.wad
-  - sm4BBgorev2.pk3
-  - vsmooth.wad
-# - more wads ...
