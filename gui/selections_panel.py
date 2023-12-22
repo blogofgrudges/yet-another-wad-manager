@@ -57,6 +57,8 @@ class SelectionsPanel(wx.Panel):
         self.wad_grid.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.wad_grid.EnableDragRowMove(True)
         self.wad_grid.SetSelectionMode(wx.grid.Grid.GridSelectNone)
+        self.wad_grid.DisableDragGridSize()
+        self.wad_grid.DisableDragRowSize()
 
         self.column_labels = ['WAD Name']
         for i, column_label in enumerate(self.column_labels):
@@ -219,9 +221,12 @@ class SelectionsPanel(wx.Panel):
         :return: None
         """
         from_index = row
+        if from_index >= len(self.my_profile.wads):  # in case a filler row is moved
+            wx.PostEvent(self.main_frame, gui.events.WADsUpdated())  # refresh the grid
+            return None  # TODO: don't like the look of this
         to_index = self.wad_grid.GetRowPos(row)
-        if to_index > len(self.my_profile.wads):
-            to_index = len(self.my_profile.wads)  # just in case
+        if to_index >= len(self.my_profile.wads):  # in case moved to a filler row
+            to_index = len(self.my_profile.wads) - 1  # just in case
 
         self.my_profile.wads.insert(to_index, self.my_profile.wads.pop(from_index))
         mylog.info(f"Moved WAD: {self.my_profile.wads[to_index]} from position: {from_index} to position: {self.wad_grid.GetRowPos(row)} new WAD list: {self.my_profile.wads}")
@@ -237,7 +242,7 @@ class SelectionsPanel(wx.Panel):
         """
         mylog.info("Refresh the WAD grid")
         self.wad_grid.ClearGrid()
-        self.wad_grid.DeleteRows(0, self.wad_grid.GetNumberRows() - 1)
+        self.wad_grid.DeleteRows(0, self.wad_grid.GetNumberRows())
         for row, wad in enumerate(self.my_profile.wads):
             self.wad_grid.AppendRows(1)
             self.wad_grid.SetCellValue(row, 0, wad)

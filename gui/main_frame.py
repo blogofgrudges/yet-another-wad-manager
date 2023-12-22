@@ -38,7 +38,8 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, *args, title=kwargs['title'])
         MainFrame.__instance = self  # cursed
         self.title = kwargs['title']
-        self.config = kwargs['config']  # TODO: manage config in here from now on
+        self.config = kwargs['config']
+        self.SetIcon(wx.Icon(self.config['gui']['icon']))
 
         self.profiles = Profiles('profiles').load()
         self.selected_profile = None

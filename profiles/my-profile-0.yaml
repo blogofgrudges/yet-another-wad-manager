@@ -1,0 +1,8 @@
+launch_opts: -skill 4
+name: HUD and sounds
+wads:
+- sm4BBgorev2.pk3
+- sunlust_extra_info.txt
+- nchud-main.pk3
+- pk_doom_sfx_20120224.wad
+- Avactor.wad

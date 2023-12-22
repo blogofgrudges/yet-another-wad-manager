@@ -4,6 +4,7 @@ logger:
 gui:
   size_x: 700
   size_y: 400
+  icon: 'YAWMIcon.png'
 
 service:
   profiles_folder: 'profiles'
