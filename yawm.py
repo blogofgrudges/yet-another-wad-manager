@@ -12,6 +12,7 @@ mylog = Logger(__name__)
 
 # ready for launch
 if __name__ == "__main__":
+    # TODO: use this as the contig source of truth from now on
     with open('config.yaml', 'rt') as config_yaml:
         config = yaml.safe_load(config_yaml.read())
 

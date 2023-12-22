@@ -6,14 +6,21 @@ import yaml
 from logbook import Logger
 
 import gui.events
-from service.models import Profile, Profiles
 
 
 mylog = Logger(__name__)
 
 
 class SelectionsPanel(wx.Panel):
-    def __init__(self, parent):
+    """
+    Selections panel class (the right hand side of the window)
+    """
+    def __init__(self, parent) -> None:
+        """
+        Create a selections panel
+
+        :param parent: MainFrame
+        """
         wx.Panel.__init__(self, parent, id=wx.ID_ANY)
         self.main_frame = parent.get_instance()
 
@@ -74,18 +81,24 @@ class SelectionsPanel(wx.Panel):
         self.panel_sizer.Add(self.button_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # bindings
-        self.Bind(wx.EVT_BUTTON, self.on_save_profile, self.save_profile_button)
-        self.Bind(wx.EVT_BUTTON, self.on_wad_picker, self.wad_picker_button)
-        self.main_frame.Bind(gui.events.SELECTED_PROFILE, self.on_new_profile_selected)
+        self.Bind(wx.EVT_BUTTON, self.save_profile, self.save_profile_button)
+        self.Bind(wx.EVT_BUTTON, self.wad_picker, self.wad_picker_button)
+        self.main_frame.Bind(gui.events.SELECTED_PROFILE, self.new_profile_selected)
         self.Bind(wx.EVT_SIZE, self.size_grid)
-        self.Bind(wx.grid.EVT_GRID_ROW_MOVE, self.on_row_moved, self.wad_grid)
+        self.Bind(wx.grid.EVT_GRID_ROW_MOVE, self.row_moved, self.wad_grid)
 
         # display
         self.main_sizer.Add(self.panel_sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(self.main_sizer)
         self.Show()
 
-    def on_wad_picker(self, event: wx.Event) -> None:
+    def wad_picker(self, event: wx.Event) -> None:
+        """
+        Launch a file picker dialog for selecting WADs to add to the profile
+
+        :param event: not used
+        :return: None
+        """
         wad_picker = wx.FileDialog(self,  # TODO: default file types?
                                    style=wx.FD_OPEN | wx.FD_MULTIPLE,
                                    defaultDir=self.config['source_port']['wads_folder'],
@@ -108,7 +121,13 @@ class SelectionsPanel(wx.Panel):
             self.wad_grid.AppendRows(self.wad_grid_max_displayed_rows - self.wad_grid.GetNumberRows())
         self.Layout()  # refresh
 
-    def on_save_profile(self, event: wx.Event) -> None:
+    def save_profile(self, event: wx.Event) -> None:
+        """
+        Try to save a profile to file, posts a profiles changed event if successful
+
+        :param event: not used
+        :return: None
+        """
         should_save = False
         if self.my_profile.name != self.main_frame.selected_profile.name:
             should_save = True
@@ -122,7 +141,13 @@ class SelectionsPanel(wx.Panel):
             self.my_profile.to_yaml(self.main_frame.selected_profile.filename)  # TODO: what if there isnt a filename?
             wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())  # force a refresh
 
-    def on_new_profile_selected(self, event: wx.Event) -> None:
+    def new_profile_selected(self, event: wx.Event) -> None:
+        """
+        Change the selected profile
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Reload WADS and opts from new profile")
         new_profile = self.main_frame.selected_profile
         self.my_profile = copy.deepcopy(new_profile)
@@ -141,6 +166,12 @@ class SelectionsPanel(wx.Panel):
         self.Layout()  # refresh
 
     def size_grid(self, event: wx.Event) -> None:
+        """
+        Size the WAD grid to fit the window correctly
+
+        :param event: wx.EVT_SIZE
+        :return: None
+        """
         r_label_size = 40  # TODO: what if its a really big number?
         panel_size = self.GetSize()
         # TODO: wtf is 19 ??
@@ -159,12 +190,24 @@ class SelectionsPanel(wx.Panel):
         self.wad_grid.SetMaxSize(wx.Size(-1, max_height))
         event.Skip()
 
-    def on_row_moved(self, event: wx.Event) -> None:
+    def row_moved(self, event: wx.Event) -> None:
+        """
+        Row in the WAD grid has been moved, post a call after event
+
+        :param event: wx.grid.EVT_GRID_ROW_MOVE
+        :return: None
+        """
         event.Skip()
         index_moved_row = event.Col  # spooky wxpython bug ??
         wx.CallAfter(self.get_row_pos, index_moved_row)
 
     def get_row_pos(self, row) -> None:
+        """
+        Determine where a row in the grid has been moved to and update the WADs list with the new position
+
+        :param row: previous position of WAD in the WADs list
+        :return: None
+        """
         from_index = row
         to_index = self.wad_grid.GetRowPos(row)
         if to_index > len(self.my_profile.wads):

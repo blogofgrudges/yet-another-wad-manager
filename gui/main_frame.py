@@ -13,13 +13,28 @@ mylog = Logger(__name__)
 
 
 class MainFrame(wx.Frame):
+    """
+    Main frame class to contain the panels
+    """
     __instance = None
 
     @classmethod
     def get_instance(cls):
+        """
+        Get a sepcific instance of this class
+
+        :return: TBC
+        """
+        # TODO: not sure what the type hinting for this should look like
         return cls.__instance  # TODO: if None?
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Create the main frame
+
+        :param args: TBC
+        :param kwargs: TBC
+        """
         wx.Frame.__init__(self, *args, **kwargs)
         MainFrame.__instance = self  # cursed
 
@@ -45,13 +60,19 @@ class MainFrame(wx.Frame):
         self.SetSizer(self.main_sizer)
 
         # bindings
-        self.Bind(gui.events.CHANGED_PROFILES, self.on_profiles_changed)
+        self.Bind(gui.events.CHANGED_PROFILES, self.profiles_changed)
 
         # display
         self.SetMinSize(wx.Size(self.config['gui']['size_x'], self.config['gui']['size_y']))
         self.Show()
 
-    def on_profiles_changed(self, event: wx.Event) -> None:
+    def profiles_changed(self, event: wx.Event) -> None:
+        """
+        Reload profiles from profiles source, posts a profile updated event
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Profiles changed, reload")
         self.profiles.load()
         wx.PostEvent(self, gui.events.ProfilesUpdated())

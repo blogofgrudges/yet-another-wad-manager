@@ -13,7 +13,15 @@ mylog = Logger(__name__)
 
 
 class ControlsPanel(wx.Panel):
-    def __init__(self, parent):
+    """
+    Controls panel class (the left hand side of the window)
+    """
+    def __init__(self, parent) -> None:
+        """
+        Create a controls panel
+
+        :param parent: MainFrame
+        """
         wx.Panel.__init__(self, parent, id=wx.ID_ANY)
         self.main_frame = parent.get_instance()
 
@@ -74,11 +82,11 @@ class ControlsPanel(wx.Panel):
         self.panel_sizer.Add(self.launch_button, 0, wx.EXPAND | wx.ALL, 10)
 
         # bindings
-        self.Bind(wx.EVT_BUTTON, self.on_add_profile, self.add_profile_button)
-        self.Bind(wx.EVT_BUTTON, self.on_refresh_profiles, self.refresh_profiles_button)
-        self.Bind(wx.EVT_BUTTON, self.on_delete_profile, self.delete_profile_button)
-        self.Bind(wx.EVT_BUTTON, self.on_launch, self.launch_button)
-        self.Bind(wx.EVT_LISTBOX, self.on_profiles_list_box_select, self.profiles_list_box)
+        self.Bind(wx.EVT_BUTTON, self.add_profile, self.add_profile_button)
+        self.Bind(wx.EVT_BUTTON, self.refresh_profiles, self.refresh_profiles_button)
+        self.Bind(wx.EVT_BUTTON, self.delete_profile, self.delete_profile_button)
+        self.Bind(wx.EVT_BUTTON, self.launch, self.launch_button)
+        self.Bind(wx.EVT_LISTBOX, self.profiles_list_box_select, self.profiles_list_box)
         self.main_frame.Bind(gui.events.UPDATED_PROFILES, self.populate_profiles)
 
         # display
@@ -86,11 +94,23 @@ class ControlsPanel(wx.Panel):
         self.Show()
 
     def populate_profiles(self, event: wx.Event) -> None:
+        """
+        Reload the profiles list box with the current list of profiles
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Update profiles listbox")
         self.profiles_list_box.Set([p.name for p in self.main_frame.profiles.profiles])  # doesn't work?
         self.Layout()
 
-    def on_add_profile(self, event: wx.Event) -> None:
+    def add_profile(self, event: wx.Event) -> None:
+        """
+        Create a new profile file, post a profiles changed event
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Hit: on_add_profile")
 
         # TODO: This should be dynamic
@@ -102,11 +122,23 @@ class ControlsPanel(wx.Panel):
 
         wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
 
-    def on_refresh_profiles(self, event: wx.Event) -> None:
+    def refresh_profiles(self, event: wx.Event) -> None:
+        """
+        Trigger a profiles changed event
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Hit: on_refresh_profiles")
         wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
 
-    def on_delete_profile(self, event: wx.Event) -> None:
+    def delete_profile(self, event: wx.Event) -> None:
+        """
+        Delete a profile file, post a profiles changed event
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Hit: on_delete_profile")
 
         profile_to_delete = self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()]
@@ -115,7 +147,13 @@ class ControlsPanel(wx.Panel):
 
         wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
 
-    def on_launch(self, event: wx.Event) -> None:
+    def launch(self, event: wx.Event) -> None:
+        """
+        Package all of the launch options and call the launcher to start the game
+
+        :param event: not used
+        :return: None
+        """
         mylog.info(f"Hit: on_launch")
 
         launch_options = {
@@ -125,7 +163,14 @@ class ControlsPanel(wx.Panel):
         }
         self.launcher.launch(launch_options)
 
-    def on_profiles_list_box_select(self, event: wx.Event) -> None:
+    def profiles_list_box_select(self, event: wx.Event) -> None:
+        """
+        New profile is selected in the list box, post a selected profile event
+
+        :param event: not used
+        :return: None
+        """
+        # TODO: perhaps the event data could carry the selected profile?
         new_profile = self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()]
         if self.main_frame.selected_profile != new_profile:
             self.main_frame.selected_profile = new_profile
