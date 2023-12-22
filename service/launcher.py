@@ -11,12 +11,11 @@ class Launcher:
     """
     DOOM Launcher class
     """
-    def __init__(self) -> None:
+    def __init__(self, **kwargs) -> None:
         """
         Create a launcher class
         """
-        with open('config.yaml', 'rt') as config_yaml:
-            self.config = yaml.safe_load(config_yaml.read())
+        self.config = kwargs['config']
 
     def launch(self, params: dict) -> None:
         """

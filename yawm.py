@@ -12,7 +12,6 @@ mylog = Logger(__name__)
 
 # ready for launch
 if __name__ == "__main__":
-    # TODO: use this as the contig source of truth from now on
     with open('config.yaml', 'rt') as config_yaml:
         config = yaml.safe_load(config_yaml.read())
 
@@ -23,7 +22,8 @@ if __name__ == "__main__":
 
     # bind the logs to the thread
     with log_setup:
-        mylog.info("Starting application")
+        mylog.info("Starting YAWM application")
         app = WADManagerApp()
-        main_frame = MainFrame(None, title=app.appName)
+
+        main_frame = MainFrame(None, title=app.appName, config=config)
         app.MainLoop()

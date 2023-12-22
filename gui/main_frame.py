@@ -33,26 +33,27 @@ class MainFrame(wx.Frame):
         Create the main frame
 
         :param args: TBC
-        :param kwargs: TBC
+        :param kwargs: title, config
         """
-        wx.Frame.__init__(self, *args, **kwargs)
+        wx.Frame.__init__(self, *args, title=kwargs['title'])
         MainFrame.__instance = self  # cursed
-
-        # TODO: manage config in here from now on
-        with open('config.yaml', 'rt') as config_yaml:
-            self.config = yaml.safe_load(config_yaml.read())
+        self.title = kwargs['title']
+        self.config = kwargs['config']  # TODO: manage config in here from now on
 
         self.profiles = Profiles('profiles').load()
-        self.selected_profile = None  # TODO: what about a default profile?
+        self.selected_profile = None
+        if self.profiles.profiles:
+            self.selected_profile = self.profiles.profiles[0]
+            wx.PostEvent(self, gui.events.SelectedProfile())
 
         # main panel
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # controls panel
-        self.controls_panel = ControlsPanel(self)
+        self.controls_panel = ControlsPanel(self, **kwargs)
 
         # selections panel
-        self.selections_panel = SelectionsPanel(self)
+        self.selections_panel = SelectionsPanel(self, **kwargs)
 
         # main panel cont.
         self.main_sizer.Add(self.controls_panel, 1, wx.EXPAND)

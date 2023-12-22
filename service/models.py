@@ -90,7 +90,6 @@ class Profiles:
         """
         self.profiles_source = profiles_source
         self.profiles = []
-        self.load()
 
     def load(self) -> Self:
         """
