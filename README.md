@@ -46,6 +46,16 @@ source_port:
 
 The source port path can be changed at any time through the appliation window.
 
+## Command line
+
+If you like to use the command line instead, YAWM can still help:
+
+```commandline
+usage: yawm_cli.py [-h] -p PROFILE [-c [CLI_OPTS]]
+```
+
+Remember you will need to create a profile YAML file manually as described above.
+
 ## Dependencies
 
 * PyYAML==6.0.1
