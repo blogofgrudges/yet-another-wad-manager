@@ -1,7 +1,6 @@
-launch_opts: '-skill 4'  # launch_opts is optional
+launch_opts: -skill 4
+name: HUD and sounds
 wads:
-  - nchud-main.pk3
-  - pk_doom_sfx_20120224.wad
-  - sm4BBgorev2.pk3
-  - vsmooth.wad
-# - more wads ...
+- sm4BBgorev2.pk3
+- nchud-main.pk3
+- pk_doom_sfx_20120224.wad
