@@ -86,6 +86,7 @@ class ControlsPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.delete_profile, self.delete_profile_button)
         self.Bind(wx.EVT_BUTTON, self.launch, self.launch_button)
         self.Bind(wx.EVT_LISTBOX, self.profiles_list_box_select, self.profiles_list_box)
+        self.Bind(wx.EVT_FILEPICKER_CHANGED, self.source_port_changed, self.source_port_picker)
         self.main_frame.Bind(gui.events.UPDATED_PROFILES, self.populate_profiles)
 
         # display
@@ -169,3 +170,20 @@ class ControlsPanel(wx.Panel):
             self.main_frame.selected_profile = new_profile
             mylog.info(f"New profile selected: {self.main_frame.selected_profile.name}")
             wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
+
+    def source_port_changed(self, event: wx.Event) -> None:
+        """
+        Record the source port path if it changed
+
+        :param event: not used
+        :return: None
+        """
+        if self.config['source_port']['binary'] != self.source_port_picker.GetPath():
+            mylog.info(f"Source port changed to: {self.source_port_picker.GetPath()}")
+            self.config['source_port']['binary'] = self.source_port_picker.GetPath()
+
+        self.main_frame.config = self.config  # technically not needed in this case
+
+        with open('config.yaml', 'w') as config_yaml:
+            mylog.info(f"Write to config.yaml")
+            yaml.dump(self.config, config_yaml)

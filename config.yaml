@@ -1,14 +1,11 @@
-logger:
-  level: 0
-
 gui:
+  icon: YAWMIcon.png
   size_x: 700
   size_y: 400
-  icon: 'YAWMIcon.png'
-
+logger:
+  level: 0
 service:
-  profiles_folder: 'profiles'
-
+  profiles_folder: profiles
 source_port:
-  binary: 'F:\GZDoom\gzdoom.exe'
-  wads_folder: 'F:\GZDoom\WADs'
+  binary: F:\GZDoom\gzdoom.exe
+  wads_folder: F:\GZDoom\WADs
