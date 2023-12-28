@@ -54,7 +54,7 @@ class Profile:
             self.wads = source_dict['wads']
         return self
 
-    def to_yaml(self, output_file: str) -> None:  # TODO: None?
+    def to_yaml(self, output_file: str) -> None:
         """
         Create a YAML file from a profile
 

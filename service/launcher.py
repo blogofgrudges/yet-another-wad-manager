@@ -1,7 +1,8 @@
 import os.path
 
-import yaml
 from logbook import Logger
+
+from service.models import Profile
 
 
 mylog = Logger(__name__)
@@ -17,22 +18,19 @@ class Launcher:
         """
         self.config = kwargs['config']
 
-    def launch(self, params: dict) -> None:
+    def launch(self, profile: Profile, binary: str, params: str = '') -> None:
         """
         Launch the game with passed in launch options
 
-        :param params: launch options
+        :param profile: the profile to launch
+        :param params: the launch options
         :return: None
         """
         wads_folder = self.config['source_port']['wads_folder']
 
-        # TODO: all of this is probably redundant now, just use the passed in params
-        launch_params = {}
-        if 'profile' in params.keys():
-            wads = [os.path.join(wads_folder, wad) for wad in params['profile'].wads]
-            launch_params['wads'] = f"-file {' '.join(wads)}"
-        if 'params' in params.keys():
-            launch_params['params'] = params['params']
+        wads = [os.path.join(wads_folder, wad) for wad in profile.wads]
 
-        launch_path = f"{params['binary']} {' '.join(launch_params.values())}"
+        launch_path = f"{binary} -file {' '.join(wads)} {profile.launch_opts} {params}"
+        mylog.info(f"Launch path: {launch_path})")
+
         os.system(launch_path)

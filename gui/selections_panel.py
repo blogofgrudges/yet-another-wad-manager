@@ -1,7 +1,8 @@
 import copy
+import os.path
+
 import wx
 import wx.grid
-import yaml
 
 from logbook import Logger
 
@@ -118,26 +119,30 @@ class SelectionsPanel(wx.Panel):
 
     def wad_picker(self, event: wx.Event) -> None:
         """
-        Launch a file picker dialog for selecting WADs to add to the profile, post a WADs updated event
+        Launch a file picker dialog for selecting WADs to add to the profile
+        Post a WADs updated event if successful
 
         :param event: not used
         :return: None
         """
         mylog.info("Launch WAD picker dialog")
-        wad_picker = wx.FileDialog(self,  # TODO: default file types?
+        wad_picker = wx.FileDialog(self,
                                    style=wx.FD_OPEN | wx.FD_MULTIPLE,
                                    defaultDir=self.config['source_port']['wads_folder'],
-                                   message="Select WADs")
-        if wad_picker.ShowModal() == wx.ID_OK:
-            wad_paths = wad_picker.GetPaths()
-            mylog.info(f"WADs picked: {wad_paths}")
-            for wad in reversed(wad_paths):
-                # TODO: this is causing me physical discomfort
-                if wad.startswith(self.config['source_port']['wads_folder']):
-                    chars = len(self.config['source_port']['wads_folder'])
-                    self.my_profile.wads.append(wad[chars+1:])
+                                   message="Select WADs",
+                                   wildcard="WAD and PK3 files (*.WAD, *.PK3)|*.WAD;*.PK3| All files (*.*)|*.*")
 
-        wx.PostEvent(self.main_frame, gui.events.WADsUpdated())
+        if wad_picker.ShowModal() == wx.ID_OK:
+            """
+            wx.FileDialog().GetFilenames() appears to return the file path, rather than just the filname so keep using
+            wx.FileDialog().GetPaths() and left trimming the directory for now until I can figure out why
+            might be an issue in wxPython
+            """
+            wads = [wad.split(os.path.sep)[-1] for wad in wad_picker.GetPaths()]
+            self.my_profile.wads.extend(wads)
+            mylog.info(f"WADs added: {wads}")
+
+            wx.PostEvent(self.main_frame, gui.events.WADsUpdated())
 
     def save_profile(self, event: wx.Event) -> None:
         """
@@ -146,16 +151,8 @@ class SelectionsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
-        should_save = False
-        if self.my_profile.name != self.main_frame.selected_profile.name:
-            should_save = True
-        if self.my_profile.wads != self.main_frame.selected_profile.wads:
-            should_save = True
-        if self.my_profile.launch_opts != self.main_frame.selected_profile.launch_opts:
-            should_save = True
-
-        if should_save is True:
-            mylog.info(f"Name/WADs/launch opts diff, write new profile to {self.main_frame.selected_profile.filename}")
+        if self.my_profile.asdict() != self.main_frame.selected_profile.asdict():
+            mylog.info(f"Profiles have diverged, write new profile to {self.main_frame.selected_profile.filename}")
             self.my_profile.to_yaml(self.main_frame.selected_profile.filename)  # TODO: what if there isnt a filename?
             wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())  # force a refresh
 
@@ -179,23 +176,28 @@ class SelectionsPanel(wx.Panel):
     def size_grid(self, event: wx.Event) -> None:
         """
         Size the WAD grid to fit the window correctly
+        The YAWM window is fixed size now so this should only ever get called at launch now
 
         :param event: wx.EVT_SIZE
         :return: None
         """
-        r_label_size = 40  # TODO: what if its a really big number?
+        row_label_size = 40  # this fits labels up to 999 WADs, that ought to be enough for anyone
+        row_size = 20
+        col_label_size = 30
+        min_column_size = 100
+        scroll_rate = 20  # must be equal to row size to stop rows being cut off
         panel_size = self.GetSize()
-        # TODO: wtf is 19 ??
-        column_size = panel_size.GetWidth() - r_label_size - wx.SystemSettings.GetMetric(wx.SYS_VSCROLL_X)
-        if column_size < 100:
-            column_size = 100  # just in case of weirdness
 
-        self.wad_grid.SetColLabelSize(30)
-        self.wad_grid.SetDefaultRowSize(20, 20)
-        self.wad_grid.SetScrollRate(20, 20)
+        column_size = panel_size.GetWidth() - row_label_size - wx.SystemSettings.GetMetric(wx.SYS_VSCROLL_X)
+        if column_size < min_column_size:
+            column_size = min_column_size  # just in case of weirdness
+
+        self.wad_grid.SetColLabelSize(col_label_size)
+        self.wad_grid.SetDefaultRowSize(row_size, row_size)
+        self.wad_grid.SetScrollRate(scroll_rate, scroll_rate)
         max_height = self.wad_grid.GetColLabelSize() + self.wad_grid.GetRowSize(0) * self.wad_grid_max_displayed_rows
 
-        self.wad_grid.SetRowLabelSize(r_label_size)
+        self.wad_grid.SetRowLabelSize(row_label_size)
         self.wad_grid.SetColSize(0, column_size)
         self.wad_grid.SetMinSize(wx.Size(-1, max_height))
         self.wad_grid.SetMaxSize(wx.Size(-1, max_height))
@@ -215,21 +217,22 @@ class SelectionsPanel(wx.Panel):
     def get_row_pos(self, row) -> None:
         """
         Determine where a row in the grid has been moved to and update the WADs list with the new position
+        WAD indicies are constrained to the size of the wads list
         Post a WADs updated event
 
         :param row: previous position of WAD in the WADs list
         :return: None
         """
         from_index = row
-        if from_index >= len(self.my_profile.wads):  # in case a filler row is moved
-            wx.PostEvent(self.main_frame, gui.events.WADsUpdated())  # refresh the grid
-            return None  # TODO: don't like the look of this
         to_index = self.wad_grid.GetRowPos(row)
-        if to_index >= len(self.my_profile.wads):  # in case moved to a filler row
-            to_index = len(self.my_profile.wads) - 1  # just in case
+        wads_list_size = len(self.my_profile.wads)
+        if from_index < wads_list_size:  # make sure a filler row is not selected
+            if to_index >= wads_list_size:  # in case target position is a filler row
+                to_index = wads_list_size - 1  # constrain target position to wads list
 
-        self.my_profile.wads.insert(to_index, self.my_profile.wads.pop(from_index))
-        mylog.info(f"Moved WAD: {self.my_profile.wads[to_index]} from position: {from_index} to position: {self.wad_grid.GetRowPos(row)} new WAD list: {self.my_profile.wads}")
+            self.my_profile.wads.insert(to_index, self.my_profile.wads.pop(from_index))
+            mylog.info(f"Moved WAD: {self.my_profile.wads[to_index]} from position: {from_index} "
+                       f"to position: {self.wad_grid.GetRowPos(row)} new WAD list: {self.my_profile.wads}")
 
         wx.PostEvent(self.main_frame, gui.events.WADsUpdated())
 

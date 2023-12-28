@@ -64,8 +64,11 @@ class MainFrame(wx.Frame):
         # bindings
         self.Bind(gui.events.CHANGED_PROFILES, self.profiles_changed)
 
-        # display
+        # force the window to a fixed size specified in the config
         self.SetMinSize(wx.Size(self.config['gui']['size_x'], self.config['gui']['size_y']))
+        self.SetMaxSize(wx.Size(self.config['gui']['size_x'], self.config['gui']['size_y']))
+
+        # display
         self.Show()
 
     def profiles_changed(self, event: wx.Event) -> None:
