@@ -36,8 +36,10 @@ class ControlsPanel(wx.Panel):
         # source port controls
         self.controls_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Select source port")
 
+        saved_path = ''
+        if self.config['source_port']['binary']:
+            saved_path = self.config['source_port']['binary']
         self.source_port_picker_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        saved_path = self.config['source_port']['binary']  # TODO: what if it's not set?
         self.source_port_picker = wx.FilePickerCtrl(self,
                                                     path=saved_path,
                                                     message="Select source port executable")
@@ -57,7 +59,7 @@ class ControlsPanel(wx.Panel):
 
         self.list_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.profiles_list_box = wx.ListBox(self, style=wx.LB_ALWAYS_SB)
-        self.populate_profiles(gui.events.UPDATED_PROFILES)  # TODO: improve this
+        wx.PostEvent(self.main_frame, gui.events.ProfilesUpdated())  # force the listbox to populate
         self.list_box_sizer.Add(self.profiles_list_box, 1, wx.EXPAND)
 
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -111,14 +113,17 @@ class ControlsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
-        # TODO: This should be dynamic
-        source = {'name': 'my-profile-2', 'wads': ['SIGIL2.WAD']}
-        new_profile = Profile().from_dict(source)
-        new_profile.filename = f'{new_profile.name}.yaml'
-        new_profile.to_yaml(f"profiles\\{new_profile.filename}")
-        mylog.info(f"Created {new_profile.name} ({new_profile.filename})")
+        mylog.info("Launch profile name dialog")
+        profile_name_dialog = wx.TextEntryDialog(self,
+                                                 message='Choose a new profile name',
+                                                 caption='Add profile')
 
-        wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
+        if profile_name_dialog.ShowModal() == wx.ID_OK:  # TODO: what if the name is already being used?
+            new_profile = Profile().from_dict({'name': profile_name_dialog.GetValue()})
+            new_profile.filename = f'{new_profile.name}.yaml'
+            new_profile.to_yaml(f"profiles\\{new_profile.filename}")
+            mylog.info(f"Created {new_profile.name} ({new_profile.filename})")
+            wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
 
     def refresh_profiles(self, event: wx.Event) -> None:
         """
@@ -149,23 +154,18 @@ class ControlsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
-        launch_options = {
-            'binary': self.source_port_picker.GetPath(),
-            'params': self.additional_params_control.GetLineText(0),
-            'profile': self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()]
-        }
-        mylog.info(f"Launch with params: {launch_options}")
-        self.launcher.launch(launch_options)
+        self.launcher.launch(self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()],
+                             self.source_port_picker.GetPath(),
+                             params=self.additional_params_control.GetLineText(0))
 
     def profiles_list_box_select(self, event: wx.Event) -> None:
         """
         New profile is selected in the list box, post a selected profile event
 
-        :param event: not used
+        :param event: wx.EVT_LISTBOX
         :return: None
         """
-        # TODO: perhaps the event data could carry the selected profile?
-        new_profile = self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()]
+        new_profile = self.main_frame.profiles.profiles[event.GetEventObject().GetSelection()]
         if self.main_frame.selected_profile != new_profile:
             self.main_frame.selected_profile = new_profile
             mylog.info(f"New profile selected: {self.main_frame.selected_profile.name}")

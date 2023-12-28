@@ -30,4 +30,4 @@ launch_options = {
     'profile': profile
 }
 
-launcher.launch(launch_options)
+launcher.launch(profile, config['source_port']['binary'], params=args.cli_opts)

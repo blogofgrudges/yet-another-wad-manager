@@ -12,7 +12,6 @@ mylog = Logger(__name__)
 
 # ready for launch
 if __name__ == "__main__":
-    # TODO: this could do with a hardening pass!
     with open('config.yaml', 'rt') as config_yaml:
         config = yaml.safe_load(config_yaml.read())
 
