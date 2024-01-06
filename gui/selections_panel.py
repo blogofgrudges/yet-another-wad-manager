@@ -57,7 +57,7 @@ class SelectionsPanel(wx.Panel):
         self.wad_grid.CreateGrid(1, 0)
         self.wad_grid.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.wad_grid.EnableDragRowMove(True)
-        self.wad_grid.SetSelectionMode(wx.grid.Grid.GridSelectNone)
+        self.wad_grid.SetSelectionMode(wx.grid.Grid.GridSelectRows)
         self.wad_grid.DisableDragGridSize()
         self.wad_grid.DisableDragRowSize()
 
@@ -75,9 +75,11 @@ class SelectionsPanel(wx.Panel):
         self.button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.save_profile_button = wx.Button(self, wx.ID_ANY, 'Save profile')
         self.wad_picker_button = wx.Button(self, wx.ID_ANY, 'Add WADs')
+        self.wad_delete_button = wx.Button(self, wx.ID_ANY, 'Delete WADs')
 
         self.button_sizer.Add(self.save_profile_button, 0, wx.RIGHT, 5)
-        self.button_sizer.Add(self.wad_picker_button, 0, wx.LEFT, 5)
+        self.button_sizer.Add(self.wad_picker_button, 0, wx.LEFT | wx.RIGHT, 5)
+        self.button_sizer.Add(self.wad_delete_button, 0, wx.LEFT, 5)
 
         self.panel_sizer.Add(self.profile_options_sizer, 0, wx.EXPAND | wx.ALL, 5)
         self.panel_sizer.Add(self.wad_grid_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -86,10 +88,13 @@ class SelectionsPanel(wx.Panel):
         # bindings
         self.Bind(wx.EVT_BUTTON, self.save_profile, self.save_profile_button)
         self.Bind(wx.EVT_BUTTON, self.wad_picker, self.wad_picker_button)
+        self.Bind(wx.EVT_BUTTON, self.delete_wads, self.wad_delete_button)
         self.Bind(wx.EVT_SIZE, self.size_grid)
         self.Bind(wx.grid.EVT_GRID_ROW_MOVE, self.row_moved, self.wad_grid)
         self.Bind(wx.EVT_TEXT, self.launch_opts_changed, self.profile_params_control)
         self.Bind(wx.EVT_TEXT, self.profile_name_changed, self.profile_name_control)
+        self.Bind(wx.grid.EVT_GRID_SELECT_CELL, self.wad_selected, self.wad_grid)
+        self.Bind(wx.grid.EVT_GRID_RANGE_SELECT, self.wad_selected, self.wad_grid)
 
         self.main_frame.Bind(gui.events.SELECTED_PROFILE, self.new_profile_selected)
         self.main_frame.Bind(gui.events.UPDATED_WADS, self.refresh_wad_grid)
@@ -98,6 +103,43 @@ class SelectionsPanel(wx.Panel):
         self.main_sizer.Add(self.panel_sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(self.main_sizer)
         self.Show()
+
+    def delete_wads(self, event: wx.Event) -> None:
+        """
+        Delete the currently selected WADs
+        Post a WADs updated event if successful
+
+        :param event: not used
+        :return: None
+        """
+        old_wads = self.my_profile.wads
+        deleted_wads = []
+        new_wads = []
+        for i, wad in enumerate(old_wads):
+            if i not in self.wad_grid.GetSelectedRows():
+                new_wads.append(wad)
+            else:
+                deleted_wads.append(wad)
+
+        if new_wads != old_wads:
+            mylog.info(f"Deleted WADs: {deleted_wads}")
+            self.my_profile.wads = new_wads
+            wx.PostEvent(self.main_frame, gui.events.WADsUpdated())
+
+    def wad_selected(self, event: wx.Event) -> None:
+        """
+        Constrain the selected WADs to the size of the WADs list
+
+        :param event: not used
+        :return: None
+        """
+        selected_rows = self.wad_grid.GetSelectedRows()
+        wads_list_size = len(self.my_profile.wads)
+        for row in selected_rows:
+            if row >= wads_list_size:
+                self.wad_grid.DeselectRow(row)
+        mylog.info(f"Selected WADs: {[self.my_profile.wads[x] for x in self.wad_grid.GetSelectedRows()]}")
+        event.Skip()
 
     def launch_opts_changed(self, event: wx.Event) -> None:
         """
@@ -249,10 +291,11 @@ class SelectionsPanel(wx.Panel):
         for row, wad in enumerate(self.my_profile.wads):
             self.wad_grid.AppendRows(1)
             self.wad_grid.SetCellValue(row, 0, wad)
-            self.wad_grid.SetReadOnly(row, 0)
         filler = self.wad_grid_max_displayed_rows - self.wad_grid.GetNumberRows()
         if filler > 0:
             self.wad_grid.AppendRows(filler)
+        for row in range(0, self.wad_grid.GetNumberRows()):
+            self.wad_grid.SetReadOnly(row, 0)
 
         mylog.info(f"WADs: {len(self.my_profile.wads)} Filler: {filler}")
         self.Layout()  # refresh
