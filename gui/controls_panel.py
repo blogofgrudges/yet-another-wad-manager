@@ -8,6 +8,7 @@ import gui.events
 from service.launcher import Launcher
 from service.models import Profile
 
+
 mylog = Logger(__name__)
 
 
@@ -15,7 +16,6 @@ class ControlsPanel(wx.Panel):
     """
     Controls panel class (the left hand side of the window)
     """
-
     def __init__(self, parent, **kwargs) -> None:
         """
         Create a controls panel
@@ -28,6 +28,8 @@ class ControlsPanel(wx.Panel):
         self.config = kwargs['config']
         kwargs['main_frame'] = self.main_frame  # TODO: This feels a bit scuffed
 
+        self.selected_profile = None
+
         # get a launcher for later
         self.launcher = Launcher(**kwargs)
 
@@ -36,14 +38,12 @@ class ControlsPanel(wx.Panel):
 
         # source port controls
         self.controls_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Select source port")
-
-        saved_path = ''
-        if self.config['source_port']['binary']:
-            saved_path = self.config['source_port']['binary']
         self.source_port_picker_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.source_port_picker = wx.FilePickerCtrl(self,
-                                                    path=saved_path,
+                                                    path='',
                                                     message="Select source port executable")
+        if self.config['source_port']['binary']:
+            self.source_port_picker.SetPath(self.config['source_port']['binary'])
         self.source_port_picker_sizer.Add(self.source_port_picker, 1, wx.ALL, 5)
 
         self.additional_params_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -107,13 +107,28 @@ class ControlsPanel(wx.Panel):
     def populate_profiles(self, event: wx.Event) -> None:
         """
         Reload the profiles list box with the current list of profiles
+        Constrain the selected profile to the profiles list range
         Post a profile selected event
 
         :param event: not used
         :return: None
         """
         mylog.info("Refresh profiles listbox")
-        self.profiles_list_box.Set([p.name for p in self.main_frame.profiles.profiles])  # doesn't work?
+        previous_selection = self.profiles_list_box.GetSelection()
+        self.profiles_list_box.Set([p.name for p in self.main_frame.profiles.profiles])
+
+        if previous_selection >= len(self.main_frame.profiles.profiles):
+            # a profile has been deleted and the selection is now out of range, constrain it to range
+            new_selection = len(self.main_frame.profiles.profiles) - 1
+        elif previous_selection < 0 and self.main_frame.profiles.profiles:
+            # nothing was selected before, but there are profiles so pick the first one
+            new_selection = 0
+        else:
+            # the previous selection is still in the range, so keep using it
+            new_selection = previous_selection
+
+        self.profiles_list_box.SetSelection(new_selection)
+        wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
         self.Layout()
 
     def add_profile(self, event: wx.Event) -> None:
@@ -153,6 +168,7 @@ class ControlsPanel(wx.Panel):
         """
         profile_to_delete = self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()]
         os.remove(f"{profile_to_delete.filename}")
+        self.main_frame.profiles.profiles.pop(self.profiles_list_box.GetSelection())
         mylog.info(f"Deleted {profile_to_delete.name} ({profile_to_delete.filename})")
 
         wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
@@ -176,9 +192,9 @@ class ControlsPanel(wx.Panel):
         :return: None
         """
         new_profile = self.main_frame.profiles.profiles[event.GetEventObject().GetSelection()]
-        if self.main_frame.selected_profile != new_profile:
-            self.main_frame.selected_profile = new_profile
-            mylog.info(f"New profile selected: {self.main_frame.selected_profile.name}")
+        if self.selected_profile != new_profile:
+            self.selected_profile = new_profile
+            mylog.info(f"New profile selected: {self.selected_profile.name}")
             wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
 
     def source_port_changed(self, event: wx.Event) -> None:

@@ -15,7 +15,7 @@ class Profile:
     """
     def __init__(self) -> None:
         """
-        Create a profiles class
+        Create a profile class
         """
         self.filename = ''
         self.name = ''
@@ -75,7 +75,7 @@ class Profile:
 
         :return: dict
         """
-        return {'name': self.name, 'launch_opts': self.launch_opts, 'wads': self.wads}
+        return {'filename': self.filename, 'name': self.name, 'launch_opts': self.launch_opts, 'wads': self.wads}
 
 
 class Profiles:
@@ -93,16 +93,22 @@ class Profiles:
 
     def load(self) -> Self:
         """
-        Load a list of profiles from a directory
+        Additively load a list of profiles from a directory
 
         :return: Self
         """
-        self.profiles = []
         for file in os.listdir(self.profiles_source):
-            if file.endswith('.yaml') or file.endswith('.yml'):  # TODO: find a better way to do this
-                p = Profile().from_yaml(os.path.join(self.profiles_source, file))
-                self.profiles.append(p)
-                mylog.info(f'Registered profile: {p.name}')
-        mylog.info(f'Profiles registered: {[pro.name for pro in self.profiles]}')
+            if file.endswith('.yaml') or file.endswith('.yml'):
+                new_profile = Profile().from_yaml(os.path.join(self.profiles_source, file))
+                if new_profile.filename not in [op.filename for op in self.profiles]:
+                    # this is a new profile
+                    self.profiles.append(new_profile)
+                    mylog.info(f'Registered new profile: {new_profile.filename}')
+                else:
+                    for index, old_profile in enumerate(self.profiles):
+                        if new_profile.filename == old_profile.filename and new_profile.asdict() != old_profile.asdict():
+                            # this is an updated profile
+                            self.profiles[index] = new_profile
+                            mylog.info(f'Registered updated profile: {new_profile.filename}')
+        mylog.info(f'Profiles registered: {len(self.profiles)}')
         return self
-

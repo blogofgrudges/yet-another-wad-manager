@@ -39,6 +39,6 @@ class Launcher:
 
         Popen(launch_path)
 
-        if self.config['service']['auto_close_on_launch']:
+        if self.config['service']['auto_close_on_launch'] and self.main_frame:
             mylog.info(f"Auto close on launch is set: {self.config['service']['auto_close_on_launch']}")
             wx.CallAfter(self.main_frame.Destroy)
