@@ -103,6 +103,6 @@ class Profiles:
                 p = Profile().from_yaml(os.path.join(self.profiles_source, file))
                 self.profiles.append(p)
                 mylog.info(f'Registered profile: {p.name}')
-        mylog.info(f'Profiles registered: {len(self.profiles)}')
+        mylog.info(f'Profiles registered: {[pro.name for pro in self.profiles]}')
         return self
 

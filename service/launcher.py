@@ -1,5 +1,7 @@
 import os.path
+from subprocess import Popen
 
+import wx
 from logbook import Logger
 
 from service.models import Profile
@@ -17,11 +19,13 @@ class Launcher:
         Create a launcher class
         """
         self.config = kwargs['config']
+        self.main_frame = kwargs['main_frame']
 
     def launch(self, profile: Profile, binary: str, params: str = '') -> None:
         """
         Launch the game with passed in launch options
 
+        :param binary: the source port executable
         :param profile: the profile to launch
         :param params: the launch options
         :return: None
@@ -31,6 +35,10 @@ class Launcher:
         wads = [os.path.join(wads_folder, wad) for wad in profile.wads]
 
         launch_path = f"{binary} -file {' '.join(wads)} {profile.launch_opts} {params}"
-        mylog.info(f"Launch path: {launch_path})")
+        mylog.info(f"Launch path: {launch_path}")
 
-        os.system(launch_path)
+        Popen(launch_path)
+
+        if self.config['service']['auto_close_on_launch']:
+            mylog.info(f"Auto close on launch is set: {self.config['service']['auto_close_on_launch']}")
+            wx.CallAfter(self.main_frame.Destroy)

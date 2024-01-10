@@ -5,6 +5,7 @@ gui:
 logger:
   level: 0
 service:
+  auto_close_on_launch: true
   profiles_folder: profiles
 source_port:
   binary: F:\GZDoom\gzdoom.exe
