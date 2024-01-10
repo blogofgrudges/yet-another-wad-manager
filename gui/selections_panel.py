@@ -3,10 +3,10 @@ import os.path
 
 import wx
 import wx.grid
-
 from logbook import Logger
 
 import gui.events
+from gui.context_menus import WADGridContextMenu
 
 
 mylog = Logger(__name__)
@@ -83,7 +83,7 @@ class SelectionsPanel(wx.Panel):
 
         self.panel_sizer.Add(self.profile_options_sizer, 0, wx.EXPAND | wx.ALL, 5)
         self.panel_sizer.Add(self.wad_grid_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        self.panel_sizer.Add(self.button_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        self.panel_sizer.Add(self.button_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         # bindings
         self.Bind(wx.EVT_BUTTON, self.save_profile, self.save_profile_button)
@@ -95,6 +95,7 @@ class SelectionsPanel(wx.Panel):
         self.Bind(wx.EVT_TEXT, self.profile_name_changed, self.profile_name_control)
         self.Bind(wx.grid.EVT_GRID_SELECT_CELL, self.wad_selected, self.wad_grid)
         self.Bind(wx.grid.EVT_GRID_RANGE_SELECT, self.wad_selected, self.wad_grid)
+        self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.wad_right_click, self.wad_grid)
 
         self.main_frame.Bind(gui.events.SELECTED_PROFILE, self.new_profile_selected)
         self.main_frame.Bind(gui.events.UPDATED_WADS, self.refresh_wad_grid)
@@ -103,6 +104,15 @@ class SelectionsPanel(wx.Panel):
         self.main_sizer.Add(self.panel_sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(self.main_sizer)
         self.Show()
+
+    def wad_right_click(self, event: wx.Event) -> None:
+        """
+        Spawna context menu when right clicking on a cell
+
+        :param event: EVT_GRID_CELL_RIGHT_CLICK
+        :return: None
+        """
+        self.wad_grid.GetPopupMenuSelectionFromUser(WADGridContextMenu(self, event.GetRow()), event.GetPosition())
 
     def delete_wads(self, event: wx.Event) -> None:
         """

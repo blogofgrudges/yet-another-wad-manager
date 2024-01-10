@@ -8,7 +8,6 @@ import gui.events
 from service.launcher import Launcher
 from service.models import Profile
 
-
 mylog = Logger(__name__)
 
 
@@ -16,6 +15,7 @@ class ControlsPanel(wx.Panel):
     """
     Controls panel class (the left hand side of the window)
     """
+
     def __init__(self, parent, **kwargs) -> None:
         """
         Create a controls panel
@@ -26,6 +26,7 @@ class ControlsPanel(wx.Panel):
         self.main_frame = parent.get_instance()
 
         self.config = kwargs['config']
+        kwargs['main_frame'] = self.main_frame  # TODO: This feels a bit scuffed
 
         # get a launcher for later
         self.launcher = Launcher(**kwargs)
@@ -72,15 +73,20 @@ class ControlsPanel(wx.Panel):
         self.buttons_sizer.Add(self.delete_profile_button, 0, wx.LEFT, 5)
 
         self.profiles_sizer.Add(self.list_box_sizer, 1, wx.EXPAND | wx.ALL, 5)
-        self.profiles_sizer.Add(self.buttons_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        self.profiles_sizer.Add(self.buttons_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         # launch control
+        self.launch_control_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.launch_auto_close = wx.CheckBox(self, label='Auto-close')
+        self.launch_auto_close.SetValue(self.config['service']['auto_close_on_launch'])
         self.launch_button = wx.Button(self, wx.ID_ANY, 'Launch w/selected options')
+        self.launch_control_sizer.Add(self.launch_auto_close, 0, wx.EXPAND | wx.RIGHT, 5)
+        self.launch_control_sizer.Add(self.launch_button, 1, wx.EXPAND | wx.LEFT, 5)
 
         # sizer cont
         self.panel_sizer.Add(self.controls_sizer, 0, wx.EXPAND | wx.ALL, 5)
         self.panel_sizer.Add(self.profiles_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        self.panel_sizer.Add(self.launch_button, 0, wx.EXPAND | wx.ALL, 10)
+        self.panel_sizer.Add(self.launch_control_sizer, 0, wx.EXPAND | wx.ALL, 10)
 
         # bindings
         self.Bind(wx.EVT_BUTTON, self.add_profile, self.add_profile_button)
@@ -89,6 +95,9 @@ class ControlsPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.launch, self.launch_button)
         self.Bind(wx.EVT_LISTBOX, self.profiles_list_box_select, self.profiles_list_box)
         self.Bind(wx.EVT_FILEPICKER_CHANGED, self.source_port_changed, self.source_port_picker)
+        self.Bind(wx.EVT_CHECKBOX, self.auto_close_changed, self.launch_auto_close)
+
+        self.main_frame.Bind(gui.events.CHANGED_CONFIG, self.config_changed)
         self.main_frame.Bind(gui.events.UPDATED_PROFILES, self.populate_profiles)
 
         # display
@@ -98,6 +107,7 @@ class ControlsPanel(wx.Panel):
     def populate_profiles(self, event: wx.Event) -> None:
         """
         Reload the profiles list box with the current list of profiles
+        Post a profile selected event
 
         :param event: not used
         :return: None
@@ -174,6 +184,7 @@ class ControlsPanel(wx.Panel):
     def source_port_changed(self, event: wx.Event) -> None:
         """
         Record the source port path if it changed
+        Post a config changed event if successful
 
         :param event: not used
         :return: None
@@ -181,9 +192,30 @@ class ControlsPanel(wx.Panel):
         if self.config['source_port']['binary'] != self.source_port_picker.GetPath():
             mylog.info(f"Source port changed to: {self.source_port_picker.GetPath()}")
             self.config['source_port']['binary'] = self.source_port_picker.GetPath()
+            wx.PostEvent(self.main_frame, gui.events.ConfigChanged())
 
-        self.main_frame.config = self.config  # technically not needed in this case
+    def auto_close_changed(self, event: wx.Event) -> None:
+        """
+        Record the auto close on launch option if it changed
+        Post a config changed event if successful
+
+        :param event: not used
+        :return: None
+        """
+        if self.config['service']['auto_close_on_launch'] != self.launch_auto_close.GetValue():
+            mylog.info(f"Auto close on launch changed to: {self.launch_auto_close.GetValue()}")
+            self.config['service']['auto_close_on_launch'] = self.launch_auto_close.GetValue()
+            wx.PostEvent(self.main_frame, gui.events.ConfigChanged())
+
+    def config_changed(self, event: wx.Event) -> None:
+        """
+        Record the changed config to YAML file
+
+        :param event: not used
+        :return: None
+        """
+        self.main_frame.config = self.config
 
         with open('config.yaml', 'w') as config_yaml:
-            mylog.info(f"Write to config.yaml")
+            mylog.info(f"Config changed write to config.yaml")
             yaml.dump(self.config, config_yaml)
