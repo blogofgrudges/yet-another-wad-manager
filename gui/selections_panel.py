@@ -27,9 +27,6 @@ class SelectionsPanel(wx.Panel):
 
         self.config = kwargs['config']
 
-        # safe version of the profile to work with
-        self.my_profile = copy.deepcopy(self.main_frame.selected_profile)
-
         # sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Launch profile")
@@ -102,12 +99,16 @@ class SelectionsPanel(wx.Panel):
 
         # display
         self.main_sizer.Add(self.panel_sizer, 1, wx.EXPAND | wx.ALL, 5)
+
+        # set safe working profile to none
+        self.my_profile = None
+
         self.SetSizer(self.main_sizer)
         self.Show()
 
     def wad_right_click(self, event: wx.Event) -> None:
         """
-        Spawna context menu when right clicking on a cell
+        Spawn a context menu when right clicking on a cell
 
         :param event: EVT_GRID_CELL_RIGHT_CLICK
         :return: None
@@ -203,27 +204,73 @@ class SelectionsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
-        if self.my_profile.asdict() != self.main_frame.selected_profile.asdict():
-            mylog.info(f"Profiles have diverged, write new profile to {self.main_frame.selected_profile.filename}")
-            self.my_profile.to_yaml(self.main_frame.selected_profile.filename)  # TODO: what if there isnt a filename?
+        selection = self.main_frame.controls_panel.profiles_list_box.GetSelection()
+        old_profile = self.main_frame.profiles.profiles[selection]
+        if self.my_profile.asdict() != old_profile.asdict():
+            mylog.info(f"Profiles have diverged, write new profile to {old_profile.filename}")
+            self.my_profile.to_yaml(old_profile.filename)  # TODO: what if there isnt a filename?
             wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())  # force a refresh
 
     def new_profile_selected(self, event: wx.Event) -> None:
         """
         Change the selected profile, post a WADs updated event
+        If no profiles remain set selected profile to None
 
         :param event: not used
         :return: None
         """
-        new_profile = self.main_frame.selected_profile
-        self.my_profile = copy.deepcopy(new_profile)
+        selection = self.main_frame.controls_panel.profiles_list_box.GetSelection()
+        if selection >= 0:
+            # there is a selected profile, enable the controls and make a new safe copy
+            self.enable_fields()
 
-        mylog.info(f"Reloading WADS and opts from new profile {new_profile.name}")
+            new_profile = self.main_frame.profiles.profiles[selection]
+            self.my_profile = copy.deepcopy(new_profile)
 
-        self.profile_params_control.SetValue(self.my_profile.launch_opts)
-        self.profile_name_control.SetValue(self.my_profile.name)
+            mylog.info(f"Reloading WADS and opts from new profile {new_profile.name}")
 
-        wx.PostEvent(self.main_frame, gui.events.WADsUpdated())
+            self.profile_params_control.SetValue(self.my_profile.launch_opts)
+            self.profile_name_control.SetValue(self.my_profile.name)
+
+            wx.PostEvent(self.main_frame, gui.events.WADsUpdated())
+        else:
+            # there are no profiles, disable the controls
+            mylog.info(f"No profiles left to load")
+            self.disable_fields()
+            self.my_profile = None
+
+    def enable_fields(self) -> None:
+        """
+        Enable the controls on the selections panel
+
+        :return: None
+        """
+        # TODO: make this a binding?
+        mylog.info(f"Enable selections panel controls")
+        self.profile_params_control.Enable()
+        self.profile_name_control.Enable()
+        self.wad_grid.Enable()
+        self.save_profile_button.Enable()
+        self.wad_picker_button.Enable()
+        self.wad_delete_button.Enable()
+
+    def disable_fields(self) -> None:
+        """
+        Disable the controls on the selections panel
+
+        :return: None
+        """
+        # TODO: make this a binding?
+        mylog.info(f"Disable selections panel controls")
+        self.profile_params_control.ChangeValue('')
+        self.profile_params_control.Disable()
+        self.profile_name_control.ChangeValue('')
+        self.profile_name_control.Disable()
+        self.wad_grid.ClearGrid()
+        self.wad_grid.Disable()
+        self.save_profile_button.Disable()
+        self.wad_picker_button.Disable()
+        self.wad_delete_button.Disable()
 
     def size_grid(self, event: wx.Event) -> None:
         """

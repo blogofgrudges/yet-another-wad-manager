@@ -18,7 +18,7 @@ args = argp.parse_args()
 with open('config.yaml', 'r') as config_yaml:
     config = yaml.safe_load(config_yaml.read())
 
-launcher = Launcher(config=config)
+launcher = Launcher(config=config, main_frame=False)
 profile = Profile().from_yaml(os.path.join(config['service']['profiles_folder'], args.profile))
 
 if args.cli_opts is None:

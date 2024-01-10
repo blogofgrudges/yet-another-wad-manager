@@ -41,11 +41,8 @@ class MainFrame(wx.Frame):
         self.config = kwargs['config']
         self.SetIcon(wx.Icon(self.config['gui']['icon']))
 
+        # load the profiles
         self.profiles = Profiles('profiles').load()
-        self.selected_profile = None
-        if self.profiles.profiles:
-            self.selected_profile = self.profiles.profiles[0]
-            wx.PostEvent(self, gui.events.SelectedProfile())
 
         # main panel
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
