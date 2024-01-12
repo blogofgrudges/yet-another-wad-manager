@@ -1,0 +1,6 @@
+filename: tests\test_data\test_profile.yaml
+name: Test Profile
+launch_opts: my-opt
+wads:
+- my-wad-0.wad
+- my-pak-0.pk3
