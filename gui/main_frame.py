@@ -1,6 +1,5 @@
 import wx
 import wx.grid
-import yaml
 from logbook import Logger
 
 import gui.events
@@ -19,14 +18,13 @@ class MainFrame(wx.Frame):
     __instance = None
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> type:
         """
         Get a sepcific instance of this class
 
         :return: TBC
         """
-        # TODO: not sure what the type hinting for this should look like
-        return cls.__instance  # TODO: if None?
+        return cls.__instance
 
     def __init__(self, *args, **kwargs) -> None:
         """
