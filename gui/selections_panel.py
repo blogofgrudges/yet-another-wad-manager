@@ -26,6 +26,7 @@ class SelectionsPanel(wx.Panel):
         self.main_frame = parent.get_instance()
 
         self.config = kwargs['config']
+        self.toggleable_elements = []  # keep track of elements on the page that need to be dis/enabled
 
         # sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -35,12 +36,14 @@ class SelectionsPanel(wx.Panel):
         self.profile_options_sizer = wx.BoxSizer(wx.VERTICAL)
         self.profile_params_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.profile_params_control = wx.TextCtrl(self)
+        self.toggleable_elements.append(self.profile_params_control)
         self.profile_params_label = wx.StaticText(self, -1, 'Launch opts')
         self.profile_params_sizer.Add(self.profile_params_label, 0, wx.ALIGN_CENTRE_VERTICAL | wx.ALL, 5)
         self.profile_params_sizer.Add(self.profile_params_control, 1, wx.ALL, 5)
 
         self.profile_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.profile_name_control = wx.TextCtrl(self)
+        self.toggleable_elements.append(self.profile_name_control)
         self.profile_name_label = wx.StaticText(self, -1, 'Profile name')
         self.profile_name_sizer.Add(self.profile_name_label, 0, wx.ALIGN_CENTRE_VERTICAL | wx.ALL, 5)
         self.profile_name_sizer.Add(self.profile_name_control, 1, wx.ALL, 5)
@@ -51,6 +54,7 @@ class SelectionsPanel(wx.Panel):
         # WAD list
         self.wad_grid_max_displayed_rows = 9
         self.wad_grid = wx.grid.Grid(self, style=wx.VSCROLL)
+        self.toggleable_elements.append(self.wad_grid)
         self.wad_grid.CreateGrid(1, 0)
         self.wad_grid.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.wad_grid.EnableDragRowMove(True)
@@ -71,8 +75,11 @@ class SelectionsPanel(wx.Panel):
         # buttons
         self.button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.save_profile_button = wx.Button(self, wx.ID_ANY, 'Save profile')
+        self.toggleable_elements.append(self.save_profile_button)
         self.wad_picker_button = wx.Button(self, wx.ID_ANY, 'Add WADs')
+        self.toggleable_elements.append(self.wad_picker_button)
         self.wad_delete_button = wx.Button(self, wx.ID_ANY, 'Delete WADs')
+        self.toggleable_elements.append(self.wad_delete_button)
 
         self.button_sizer.Add(self.save_profile_button, 0, wx.RIGHT, 5)
         self.button_sizer.Add(self.wad_picker_button, 0, wx.LEFT | wx.RIGHT, 5)
@@ -90,8 +97,12 @@ class SelectionsPanel(wx.Panel):
         self.Bind(wx.grid.EVT_GRID_ROW_MOVE, self.row_moved, self.wad_grid)
         self.Bind(wx.EVT_TEXT, self.launch_opts_changed, self.profile_params_control)
         self.Bind(wx.EVT_TEXT, self.profile_name_changed, self.profile_name_control)
-        self.Bind(wx.grid.EVT_GRID_SELECT_CELL, self.wad_selected, self.wad_grid)
-        self.Bind(wx.grid.EVT_GRID_RANGE_SELECT, self.wad_selected, self.wad_grid)
+        self.Bind(wx.grid.EVT_GRID_RANGE_SELECTED, self.wad_selected, self.wad_grid)
+        """
+        There's a bit of wxPython weirdness going on where EVT_GRID_RANGE_SELECTED is being emitted on select start 
+        despite ..ED events only supposed to be triggered when the selection is finalized. This isn't the end of the
+        world but there will be duplicate log messages produced for now
+        """
         self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.wad_right_click, self.wad_grid)
 
         self.main_frame.Bind(gui.events.SELECTED_PROFILE, self.new_profile_selected)
@@ -101,7 +112,7 @@ class SelectionsPanel(wx.Panel):
         self.main_sizer.Add(self.panel_sizer, 1, wx.EXPAND | wx.ALL, 5)
 
         # set safe working profile to none
-        self.my_profile = None
+        self.my_profile = None  # TODO: it might be nice if we just saved everything on the fly
 
         self.SetSizer(self.main_sizer)
         self.Show()
@@ -144,8 +155,11 @@ class SelectionsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
+        print(event)
         selected_rows = self.wad_grid.GetSelectedRows()
         wads_list_size = len(self.my_profile.wads)
+        if len(selected_rows) == 0:
+            return None
         for row in selected_rows:
             if row >= wads_list_size:
                 self.wad_grid.DeselectRow(row)
@@ -245,14 +259,10 @@ class SelectionsPanel(wx.Panel):
 
         :return: None
         """
-        # TODO: make this a binding?
         mylog.info(f"Enable selections panel controls")
-        self.profile_params_control.Enable()
-        self.profile_name_control.Enable()
-        self.wad_grid.Enable()
-        self.save_profile_button.Enable()
-        self.wad_picker_button.Enable()
-        self.wad_delete_button.Enable()
+        for control in self.toggleable_elements:
+            if not control.IsEnabled():
+                control.Enable()
 
     def disable_fields(self) -> None:
         """
@@ -260,17 +270,14 @@ class SelectionsPanel(wx.Panel):
 
         :return: None
         """
-        # TODO: make this a binding?
         mylog.info(f"Disable selections panel controls")
-        self.profile_params_control.ChangeValue('')
-        self.profile_params_control.Disable()
-        self.profile_name_control.ChangeValue('')
-        self.profile_name_control.Disable()
-        self.wad_grid.ClearGrid()
-        self.wad_grid.Disable()
-        self.save_profile_button.Disable()
-        self.wad_picker_button.Disable()
-        self.wad_delete_button.Disable()
+        for control in self.toggleable_elements:
+            if control.IsEnabled():
+                control.Disable()
+                if isinstance(control, wx.TextCtrl):
+                    control.ChangeValue('')
+                if isinstance(control, wx.grid.Grid):
+                    control.ClearGrid()
 
     def size_grid(self, event: wx.Event) -> None:
         """
