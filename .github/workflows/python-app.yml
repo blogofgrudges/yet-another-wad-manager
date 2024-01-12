@@ -25,7 +25,7 @@ jobs:
         python-version: "3.11"
     - name: Install dependencies
       run: |
-        apt-get install -y \
+        sudo apt-get install -y \
           freeglut3 \
           freeglut3-dev \
           libgl1-mesa-dev \
