@@ -26,20 +26,31 @@ class TestProfile:
         """
         Make a new profile from a YAML
         """
-        profile_path = os.path.join('..', 'test_data', 'test_profile.yaml')
-        profile = Profile().from_yaml(profile_path)
+        with TemporaryDirectory() as test_dir:
+            profile_dict = {
+                'filename': 'test-profile.yaml',
+                'name': 'Test Profile',
+                'launch_opts': 'my-opt',
+                'wads': ['my-wad-0.wad', 'my-pak-0.pk3']
+            }
 
-        assert profile.filename == profile_path
-        assert profile.name == 'Test Profile'
-        assert profile.launch_opts == 'my-opt'
-        assert profile.profile is not None
-        assert profile.wads == ['my-wad-0.wad', 'my-pak-0.pk3']
+            profile_path = os.path.join(test_dir, 'test_profile.yaml')
+            with open(profile_path, 'w') as profile_file:
+                yaml.dump(profile_dict, profile_file)
+
+            profile = Profile().from_yaml(profile_path)
+
+            assert profile.filename == profile_path
+            assert profile.name == 'Test Profile'
+            assert profile.launch_opts == 'my-opt'
+            assert profile.profile is not None
+            assert profile.wads == ['my-wad-0.wad', 'my-pak-0.pk3']
 
     def test_new_profile_from_yaml_missing_file(self):
         """
         Make a new profile from a missing YAML
         """
-        profile_path = os.path.join('..', 'test_data', 'does_not_exist.yaml')
+        profile_path = ''
         profile = Profile().from_yaml(profile_path)
 
         assert profile.filename == ''
