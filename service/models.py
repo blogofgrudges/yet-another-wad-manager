@@ -121,7 +121,7 @@ class Profiles:
         :return: Self
         """
         for file in os.listdir(self.profiles_source):
-            if not file.endswith(('.yaml', '.yml')):
+            if not file.endswith(('.fail', '.yml')):
                 continue
             new_profile = Profile().from_yaml(os.path.join(self.profiles_source, file))
 
