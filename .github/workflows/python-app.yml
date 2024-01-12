@@ -39,7 +39,6 @@ jobs:
           libsm-dev \
           libtiff-dev \
           libwebkit2gtk-4.0-dev \
-          libwebkitgtk-dev \
           libxtst-dev;
     - name: Install python dependencies
       run: |
