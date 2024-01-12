@@ -23,6 +23,19 @@ class Profile:
         self.profile = None
         self.wads = []
 
+    def __eq__(self, another: type):
+        """
+        Cursed python testing magic
+
+        :param another: the thing being compared
+        :return:
+        """
+        return (self.filename == another.filename and
+                self.name == another.name and
+                self.launch_opts == another.launch_opts and
+                self.profile == another.profile,
+                self.wads == another.wads)
+
     def from_yaml(self, source_file: str) -> Self:
         """
         Populate a profile from a YAML file
@@ -30,11 +43,16 @@ class Profile:
         :param source_file: YAML file to load from
         :return: Self
         """
-        with open(source_file, 'r') as profile_yaml:
+        try:
+            profile_yaml = open(source_file, 'r')
+        except OSError as error:
+            mylog.error(error)
+            return self
+        else:
             self.profile = yaml.safe_load(profile_yaml.read())
-        self.filename = source_file
-        self.from_dict(self.profile)
-        return self
+            self.filename = source_file
+            self.from_dict(self.profile)
+            return self
 
     def from_dict(self, source_dict: dict) -> Self:
         """
@@ -66,7 +84,12 @@ class Profile:
             if v != '':
                 output[k] = v
 
-        with open(output_file, 'w') as output_yaml:
+        try:
+            output_yaml = open(output_file, 'w')
+        except OSError as error:
+            mylog.error(error)
+            return None
+        else:
             yaml.dump(output, output_yaml)
 
     def asdict(self) -> dict:

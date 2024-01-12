@@ -18,8 +18,13 @@ class Launcher:
         """
         Create a launcher class
         """
-        self.config = kwargs['config']
-        self.main_frame = kwargs['main_frame']
+        self.config = ''
+        self.main_frame = None
+
+        if 'config' in kwargs.keys():
+            self.config = kwargs['config']
+        if 'main_frame' in kwargs.keys():
+            self.main_frame = kwargs['main_frame']
 
     def launch(self, profile: Profile, binary: str, params: str = '') -> None:
         """
