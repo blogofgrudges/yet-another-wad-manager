@@ -116,26 +116,25 @@ class Profiles:
 
     def load(self) -> Self:
         """
-        Additively load a list of profiles from a directory
+        Load a list of profiles from a directory
 
         :return: Self
         """
+        new_profiles = []
         for file in os.listdir(self.profiles_source):
             if not file.endswith(('.yaml', '.yml')):
                 continue
-            new_profile = Profile().from_yaml(os.path.join(self.profiles_source, file))
+            new_profiles.append(Profile().from_yaml(os.path.join(self.profiles_source, file)))
+            mylog.info(f'Registered new profile: {file}')
 
-            for index, old_profile in enumerate(self.profiles):
-                if new_profile.filename == old_profile.filename and new_profile.asdict() != old_profile.asdict():
-                    # this is an existing, updated profile
-                    self.profiles[index] = new_profile
-                    mylog.info(f'Registered updated profile: {new_profile.filename}')
-                    break
-
-            if new_profile.filename not in [op.filename for op in self.profiles]:
-                # this must be a new profile
-                self.profiles.append(new_profile)
-                mylog.info(f'Registered new profile: {new_profile.filename}')
+        for old_profile in self.profiles:
+            if old_profile.filename not in [np.filename for np in new_profiles]:
+                """
+                The old profile is not in the new profiles list, so it must have been deleted
+                This is purely here to help with debugging
+                """
+                mylog.info(f'Deleted profile: {old_profile.filename}')
+        self.profiles = new_profiles
 
         mylog.info(f'Profiles registered: {len(self.profiles)}')
         return self

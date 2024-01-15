@@ -230,3 +230,35 @@ class TestProfiles:
 
             assert profiles.profiles_source == test_dir
             assert profiles.profiles == [profile_yml, updated_profile_yml]
+
+    def test_profiles_deleted_profile(self):
+        """
+        Do not load a deleted profile after profiles have already been loaded
+        """
+        with TemporaryDirectory() as test_dir:
+            profile_dict = {
+                'name': 'Test Profile',
+                'launch_opts': 'my-opt',
+                'wads': ['my-wad-0.wad', 'my-pak-0.pk3']
+            }
+
+            updated_profile_dict = {
+                'name': 'Another Test Profile',
+                'launch_opts': 'another-my-opt',
+                'wads': ['my-wad-0.wad', 'my-pak-0.pk3', 'my-pak-1.pk3']
+            }
+
+            profile_yaml = Profile().from_dict(profile_dict)
+            profile_yaml.to_yaml(os.path.join(test_dir, 'test_profile.yaml'))
+
+            profile_yml = Profile().from_dict(profile_dict)
+            profile_yml.to_yaml(os.path.join(test_dir, 'test_profile.yml'))
+
+            profiles = Profiles(test_dir).load()
+
+            os.remove(os.path.join(test_dir, 'test_profile.yml'))
+
+            profiles.load()
+
+            assert profiles.profiles_source == test_dir
+            assert profiles.profiles == [profile_yml]

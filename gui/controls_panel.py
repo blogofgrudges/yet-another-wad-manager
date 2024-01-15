@@ -143,7 +143,7 @@ class ControlsPanel(wx.Panel):
                                                  message='Choose a new profile name',
                                                  caption='Add profile')
 
-        if profile_name_dialog.ShowModal() == wx.ID_OK:  # TODO: what if the name is already being used?
+        if profile_name_dialog.ShowModal() == wx.ID_OK:  # TODO: what if the name is already being used? or empty
             new_profile = Profile().from_dict({'name': profile_name_dialog.GetValue()})
             new_profile.filename = f'{new_profile.name}.yaml'
             new_profile.to_yaml(f"profiles\\{new_profile.filename}")
@@ -192,10 +192,9 @@ class ControlsPanel(wx.Panel):
         :return: None
         """
         new_profile = self.main_frame.profiles.profiles[event.GetEventObject().GetSelection()]
-        if self.selected_profile != new_profile:
-            self.selected_profile = new_profile
-            mylog.info(f"New profile selected: {self.selected_profile.name}")
-            wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
+        self.selected_profile = new_profile
+        mylog.info(f"New profile selected: {self.selected_profile.name}")
+        wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
 
     def source_port_changed(self, event: wx.Event) -> None:
         """
