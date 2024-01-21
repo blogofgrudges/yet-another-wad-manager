@@ -1,7 +1,8 @@
+import os.path
 import sys
 
 import yaml
-from logbook import Logger, NestedSetup, StreamHandler
+from logbook import Logger, NestedSetup, StreamHandler, TimedRotatingFileHandler
 
 from gui.app import WADManagerApp
 from gui.main_frame import MainFrame
@@ -16,7 +17,13 @@ if __name__ == "__main__":
         config = yaml.safe_load(config_yaml.read())
 
     log_setup = NestedSetup([
-            StreamHandler(sys.stdout, level=config['logger']['level'], bubble=False)
+            StreamHandler(sys.stdout, level=config['logger']['level'], bubble=False),
+            TimedRotatingFileHandler(
+                    os.path.abspath('yawm-log'),
+                    level=0,
+                    backup_count=3,
+                    bubble=True,
+                    date_format='%Y-%m-%d')
         ]
     )
 
