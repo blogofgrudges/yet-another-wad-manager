@@ -57,7 +57,7 @@ class MainFrame(wx.Frame):
         self.SetSizer(self.main_sizer)
 
         # bindings
-        self.Bind(gui.events.CHANGED_PROFILES, self.profiles_changed)
+        self.Bind(gui.events.PROFILES_CHANGED, self.profiles_changed)
 
         # force the window to a fixed size specified in the config
         self.SetMinSize(wx.Size(self.config['gui']['size_x'], self.config['gui']['size_y']))

@@ -106,13 +106,13 @@ class SelectionsPanel(wx.Panel):
         self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, self.wad_right_click, self.wad_grid)
 
         self.main_frame.Bind(gui.events.SELECTED_PROFILE, self.new_profile_selected)
-        self.main_frame.Bind(gui.events.UPDATED_WADS, self.refresh_wad_grid)
+        self.main_frame.Bind(gui.events.WADS_UPDATED, self.refresh_wad_grid)
 
         # display
         self.main_sizer.Add(self.panel_sizer, 1, wx.EXPAND | wx.ALL, 5)
 
         # set safe working profile to none
-        self.my_profile = None  # TODO: it might be nice if we just saved everything on the fly
+        self.my_profile = None
 
         self.SetSizer(self.main_sizer)
         self.Show()

@@ -28,8 +28,6 @@ class ControlsPanel(wx.Panel):
         self.config = kwargs['config']
         kwargs['main_frame'] = self.main_frame  # TODO: This feels a bit scuffed
 
-        self.selected_profile = None
-
         # get a launcher for later
         self.launcher = Launcher(**kwargs)
 
@@ -44,6 +42,7 @@ class ControlsPanel(wx.Panel):
                                                     message="Select source port executable")
         if self.config['source_port']['binary']:
             self.source_port_picker.SetPath(self.config['source_port']['binary'])
+            wx.CallAfter(self.source_port_picker.TextCtrl.SetInsertionPoint, 0)  # this is a bit cursed
         self.source_port_picker_sizer.Add(self.source_port_picker, 1, wx.ALL, 5)
 
         self.additional_params_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -97,8 +96,10 @@ class ControlsPanel(wx.Panel):
         self.Bind(wx.EVT_FILEPICKER_CHANGED, self.source_port_changed, self.source_port_picker)
         self.Bind(wx.EVT_CHECKBOX, self.auto_close_changed, self.launch_auto_close)
 
-        self.main_frame.Bind(gui.events.CHANGED_CONFIG, self.config_changed)
-        self.main_frame.Bind(gui.events.UPDATED_PROFILES, self.populate_profiles)
+        self.main_frame.Bind(gui.events.CONFIG_CHANGED, self.config_changed)
+        self.main_frame.Bind(gui.events.PROFILES_UPDATED, self.populate_profiles)
+
+        self.last_selected_profile_index = self.profiles_list_box.GetSelection()
 
         # display
         self.SetSizer(self.panel_sizer)
@@ -128,6 +129,7 @@ class ControlsPanel(wx.Panel):
             new_selection = previous_selection
 
         self.profiles_list_box.SetSelection(new_selection)
+        self.last_selected_profile_index = new_selection
         wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
         self.Layout()
 
@@ -144,6 +146,14 @@ class ControlsPanel(wx.Panel):
                                                  caption='Add profile')
 
         if profile_name_dialog.ShowModal() == wx.ID_OK:  # TODO: what if the name is already being used? or empty
+            # just so we dont lose any unsaved edits
+            if self.last_selected_profile_index >= 0:
+                active_profile = self.main_frame.selections_panel.my_profile
+                last_profile = self.main_frame.profiles.profiles[self.last_selected_profile_index]
+                discard_changes = self.discard_unsaved_changes(active_profile, last_profile)
+                if not discard_changes:
+                    return None
+
             new_profile = Profile().from_dict({'name': profile_name_dialog.GetValue()})
             new_profile.filename = f'{new_profile.name}.yaml'
             new_profile.to_yaml(f"profiles\\{new_profile.filename}")
@@ -157,6 +167,14 @@ class ControlsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
+        # just so we dont lose any unsaved edits
+        if self.last_selected_profile_index >= 0:
+            active_profile = self.main_frame.selections_panel.my_profile
+            last_profile = self.main_frame.profiles.profiles[self.last_selected_profile_index]
+            discard_changes = self.discard_unsaved_changes(active_profile, last_profile)
+            if not discard_changes:
+                return None
+
         wx.PostEvent(self.main_frame, gui.events.ProfilesChanged())
 
     def delete_profile(self, event: wx.Event) -> None:
@@ -166,6 +184,15 @@ class ControlsPanel(wx.Panel):
         :param event: not used
         :return: None
         """
+        # just so we dont lose any unsaved edits
+        if self.last_selected_profile_index >= 0:
+            active_profile = self.main_frame.selections_panel.my_profile
+            last_profile = self.main_frame.profiles.profiles[self.last_selected_profile_index]
+            discard_changes = self.discard_unsaved_changes(active_profile, last_profile)
+            if not discard_changes:
+                return None
+
+        # TODO: make sure a profile is selected first
         profile_to_delete = self.main_frame.profiles.profiles[self.profiles_list_box.GetSelection()]
         os.remove(f"{profile_to_delete.filename}")
         self.main_frame.profiles.profiles.pop(self.profiles_list_box.GetSelection())
@@ -186,14 +213,24 @@ class ControlsPanel(wx.Panel):
 
     def profiles_list_box_select(self, event: wx.Event) -> None:
         """
-        New profile is selected in the list box, post a selected profile event
+        New profile is selected in the list box
+        Post a selected profile event if successful
 
         :param event: wx.EVT_LISTBOX
         :return: None
         """
+        if self.last_selected_profile_index >= 0:
+            active_profile = self.main_frame.selections_panel.my_profile
+            last_profile = self.main_frame.profiles.profiles[self.last_selected_profile_index]
+            discard_changes = self.discard_unsaved_changes(active_profile, last_profile)
+            if not discard_changes:
+                event.GetEventObject().SetSelection(self.last_selected_profile_index)
+                return None
+
+        # TODO: there is probably some weirdness going on in here when deleteing the last profile
         new_profile = self.main_frame.profiles.profiles[event.GetEventObject().GetSelection()]
-        self.selected_profile = new_profile
-        mylog.info(f"New profile selected: {self.selected_profile.name}")
+        self.last_selected_profile_index = event.GetEventObject().GetSelection()
+        mylog.info(f"New profile selected: {new_profile.name}")
         wx.PostEvent(self.main_frame, gui.events.SelectedProfile())
 
     def source_port_changed(self, event: wx.Event) -> None:
@@ -234,3 +271,33 @@ class ControlsPanel(wx.Panel):
         with open('config.yaml', 'w') as config_yaml:
             mylog.info(f"Config changed write to config.yaml")
             yaml.dump(self.config, config_yaml)
+
+    def discard_unsaved_changes(self, active_profile: Profile, last_profile: Profile) -> bool:
+        """
+        Check for unsaved changes and launch a modal for discard or cancel
+
+        :param active_profile: Current profile
+        :param last_profile: Last profile
+        :return: None
+        """
+
+        if active_profile.asdict() != last_profile.asdict():
+            mylog.info(f"Active profile {active_profile.name} has unsaved changes!")
+            discard_changes_dialog = wx.MessageDialog(self,
+                                                   f'Profile "{active_profile.name}" has unsaved changes',
+                                                   'Unsaved changes',
+                                                   wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+            discard_changes_dialog.SetYesNoLabels('Discard changes', 'Cancel')
+            discard_changes = discard_changes_dialog.ShowModal()
+
+            if discard_changes == wx.ID_YES:
+                # discard changes
+                mylog.info(f"Discard the changes and continue")
+                return True
+            else:
+                # cancel the action
+                mylog.info(f"Cancel the action")
+                return False
+        else:
+            mylog.info(f"Profiles match")
+            return True
